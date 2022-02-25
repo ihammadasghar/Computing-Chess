@@ -1,6 +1,7 @@
 from models import Board, Player
 from minimax import minimax
 from utility import print_board
+import datetime
 
 player_white = Player("Hammad", "white")
 player_black = Player("Habib", "black")
@@ -14,5 +15,7 @@ while True:
     position = tuple(map(int, command[0].split(",")))
     destination = tuple(map(int, command[1].split(",")))
     new_board = board
+    print(datetime.datetime.now())
     print(f"Minimax says: {minimax(position, destination, new_board)}")
+    print(datetime.datetime.now())
     board.make_move(position, destination)
