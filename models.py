@@ -1,14 +1,14 @@
+teams = ("white", "black")
+
 class Player:
     def __init__(self, name, team) -> None:
         self.name = name
         self.team = team
-        self.possible_moves = {}
-
 
 class Cell:
-    def __init__(self, position, piece=None) -> None:
+    def __init__(self, piece=None) -> None:
         self.piece = piece
-        self.position = position
+        self.worth = 0.0
 
 
 class Piece:
@@ -16,148 +16,145 @@ class Piece:
         self.name = name
         self.team = team
         self.points = points
-        self.worth = points
-        self.possible_moves = []
 
 
 class Board:
-    def __init__(self, max_player=None, min_player=None) -> None:
-        self.cells = [[Cell(position=(row,col)) for col in range(8)] for row in range(8)]
+    def __init__(self, max_player, min_player) -> None:
+        self.cells = {}
+        for row in range(8):
+            for col in range(8):
+                self.cells[(row, col)] = Cell()
+
         self.max_player = max_player
         self.min_player = min_player
+        self.max_player_moves = {}
+        self.min_player_moves = {}
         self.state = 0.0
-        self.history = []
-        pieces = [
-        ("rook", 5.0),
-        ("knight", 3.0), 
-        ("bishop", 3.0),
-        ("king", 80.0),
-        ("queen", 10.0),
-        ("bishop", 3.0), 
-        ("knight", 3.0), 
-        ("rook", 5.0)
-        ]
-
-        for i in range(8):
-            name, worth = pieces[i]
-            self.cells[0][i].piece = Piece(name, "white", worth)
-            self.cells[1][i].piece = Piece("pawn", "white", 1.0)
-            self.cells[7][i].piece = Piece(name, "black", worth)
-            self.cells[6][i].piece = Piece("pawn", "black", 1.0)
-
-        self.evaluate_worths()
-
+            
 
     def set_state(self, board):
-        self.max_player = board.max_player
-        self.min_player = board.min_player
-        self.state = board.state
-        for position, destination in board.history:
-            self.make_move(position, destination)
+        self.state = float(board.state)
+        self.max_player_moves = board.max_player_moves.copy()
+        self.min_player_moves = board.min_player_moves.copy()
+        for row in range(8):
+            for col in range(8):
+                position = (row, col)
+                cell = board.cells[position]
+                if cell.piece:
+                    self.cells[position].piece = cell.piece
+                    self.cells[position].worth = float(cell.worth)
 
 
     def make_move(self, position, destination):
-        self.history.append((position, destination))
-
-        prow, pcol = position
-        drow, dcol = destination
-        piece = self.cells[prow][pcol].piece
-        if piece == "white":
-            self.state -= (piece.worth - piece.points)
+        cell = self.cells[position]
+        piece = cell.piece
+        if piece == teams[0]:
+            self.state -= cell.worth - piece.points
         else:
-            self.state += (piece.worth - piece.points)
-        self.cells[prow][pcol].piece = None
+            self.state += cell.worth - piece.points
+        self.cells[position].piece = None
 
-        destination_piece = self.cells[drow][dcol].piece
+        destination_cell = self.cells[destination]
+        destination_piece = destination_cell.piece
         #  Capturing
         if destination_piece:
-            if destination_piece.team == "white":
-                self.state -= (destination_piece.worth - destination_piece.points)
+            if destination_piece.team == teams[0]:
+                self.state -= (destination_cell.worth - destination_piece.points)
                 self.state -= destination_piece.points
             else:
-                self.state += (destination_piece.worth - destination_piece.points)
+                self.state += (destination_cell.worth - destination_piece.points)
                 self.state += destination_piece.points
 
             #  Game Ended
             if destination_piece.name == "king":
                 return True
         
-        self.cells[drow][dcol].piece = piece
+        self.cells[destination].piece = piece
         self.evaluate_worths()
+
         return False
 
     def evaluate_worths(self):
-        self.max_player.possible_moves = {}
-        self.min_player.possible_moves = {}
+        self.max_player_moves = {}
+        self.min_player_moves = {}
 
         for row in range(8):
             for col in range(8):
-                cell = self.cells[row][col]
+                position = (row, col)
+                cell = self.cells[position]
                 piece = cell.piece
                 if piece is None:
                     continue
 
                 #  Reset
-                piece.worth = piece.points
-                piece.possible_moves = []
+                cell.worth = piece.points
+
+                if piece.team == teams[0]:
+                    self.max_player_moves[position] = []
+                else:
+                    self.min_player_moves[position] = []
 
                 #  Caculate ranges and possible moves
                 if piece.name == "queen":
-                    self.calculate_plus_range(cell)
-                    self.calculate_x_range(cell)
-
-                elif piece.name == "rook":
-                    self.calculate_plus_range(cell)
-
-                elif piece.name == "bishop":
-                    self.calculate_x_range(cell)
-                
-                elif piece.name == "knight":
-                    self.calculate_knight_range(cell)
-
-                elif piece.name == "pawn":
-                    self.calculate_pawn_range(cell)
-                
+                    self.calculate_queen_range(position)
                 elif piece.name == "king":
-                    self.calculate_king_range(cell)
+                    self.calculate_king_range(position)
+                elif piece.name == "knight":
+                    self.calculate_knight_range(position)
+                elif piece.name == "bishop":
+                    self.calculate_x_range(position)
+                elif piece.name == "rook":
+                    self.calculate_plus_range(position)
+                elif piece.name == "pawn":
+                    self.calculate_pawn_range(position)
                 
-                if piece.team == "white":
-                    self.max_player.possible_moves.update({cell.position: piece.possible_moves})
-                else:
-                    self.min_player.possible_moves.update({cell.position: piece.possible_moves})
-    
-    def check_and_update_worth(self, cell, position):
-        row, col = position
+                if piece.team == teams[0] and self.max_player_moves[position] == []:
+                    self.max_player_moves.pop(position)
+                elif piece.team == teams[1] and self.min_player_moves[position] == []:
+                    self.min_player_moves.pop(position)
+
+    def check_and_update_worth(self, position, destination):
+        row, col = destination
         #  Out of board
-        if row>7 or col>7 or row<0 or col<0 :
+        if not (0 <= row <=7) or not (0 <= col <=7):
             return True
 
+        cell = self.cells[position]
         piece = cell.piece
-        in_range_piece = self.cells[row][col].piece
+        in_range_cell = self.cells[destination]
+        in_range_piece = in_range_cell.piece
         if in_range_piece:
             if in_range_piece.team != piece.team:
-                in_range_advantage = in_range_piece.worth/2
+                in_range_advantage = in_range_cell.worth/2
 
-                piece.worth += in_range_advantage
-                if piece.team == "white":
+                cell.worth += in_range_advantage
+                if piece.team == teams[0]:
                     self.state += in_range_advantage
                 else:
                     self.state -= in_range_advantage
 
-                piece.possible_moves.append(position)    
-                # print(f"{piece.name}({piece.team[:1]})[{piece.worth}] has in range {in_range_piece.name}({in_range_piece.team[:1]})[{in_range_piece.worth}]")
+                if piece.team == teams[0]:
+                    self.max_player_moves[position].append(destination)
+                else:
+                    self.min_player_moves[position].append(destination)
                 return True
-            # print(position, "own piece")
             return True
 
         if piece.name == "pawn":
             return False
 
-        piece.possible_moves.append(position)
+        if piece.team == teams[0]:
+            self.max_player_moves[position].append(destination)
+        else:
+            self.min_player_moves[position].append(destination)
         return False
 
-    def calculate_plus_range(self, cell):
-        row, col = cell.position
+    def calculate_queen_range(self, position):
+        self.calculate_plus_range(position)
+        self.calculate_x_range(position)
+
+    def calculate_plus_range(self, position):
+        row, col = position
 
         up = True
         down = True
@@ -165,31 +162,27 @@ class Board:
         right = True
         for i in range(1, 8):
             if up:
-                position = (row-i, col)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    up = False
+                destination = (row-i, col)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                up = not is_End_or_Blocked
             
             if down:
-                position = (row+i, col)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    down = False
+                destination = (row+i, col)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                down = not is_End_or_Blocked
 
             if left:
-                position = (row, col-i)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    left = False
+                destination = (row, col-i)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                left = not is_End_or_Blocked
 
             if right:
-                position = (row, col+i)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    right = False
+                destination = (row, col+i)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                right = not is_End_or_Blocked
 
-    def calculate_x_range(self, cell):
-        row, col = cell.position
+    def calculate_x_range(self, position):
+        row, col = position
         
         top_left = True
         top_right = True
@@ -197,64 +190,64 @@ class Board:
         bottom_right = True
         for i in range(1, 8):
             if top_left:
-                position = (row-i, col-i)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    top_left = False
+                destination = (row-i, col-i)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                top_left = not is_End_or_Blocked
             
             if top_right:
-                position = (row-i, col+i)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    top_right = False
+                destination = (row-i, col+i)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                top_right = not is_End_or_Blocked
 
             if bottom_left:
-                position = (row+i, col-i)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    bottom_left = False
+                destination = (row+i, col-i)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                bottom_left = not is_End_or_Blocked
 
             if bottom_right:
-                position = (row+i, col+i)
-                is_End_or_Blocked = self.check_and_update_worth(cell, position)
-                if is_End_or_Blocked:
-                    bottom_right = False
+                destination = (row+i, col+i)
+                is_End_or_Blocked = self.check_and_update_worth(position, destination)
+                bottom_right = not is_End_or_Blocked
 
-    def calculate_knight_range(self, cell):
-        row, col = cell.position
-        positions = [(row-2, col-1), (row-2, col+1),
+    def calculate_knight_range(self, position):
+        row, col = position
+        destinations = [(row-2, col-1), (row-2, col+1),
                     (row-1, col-2), (row-1, col+2),
                     (row+1, col-2), (row+1, col+2),
                     (row+2, col-1), (row+2, col+1),
                     ]
-        for position in positions:
-            self.check_and_update_worth(cell, position)
+        for destination in destinations:
+            self.check_and_update_worth(position, destination)
 
-    def calculate_pawn_range(self, cell):
+    def calculate_pawn_range(self, position):
+        cell = self.cells[position]
         team = cell.piece.team
-        row, col = cell.position
-        positions = [(row+1, col-1), (row+1, col+1)] if team == "white" else [(row-1, col-1), (row-1, col+1)]
-        for position in positions:
-            self.check_and_update_worth(cell, position)
+        row, col = position
+        destinations = [(row+1, col-1), (row+1, col+1)] if team == teams[0] else [(row-1, col-1), (row-1, col+1)]
+        for destination in destinations:
+            self.check_and_update_worth(position, destination)
         
-        forward = (row+1, col) if team == "white" else (row-1, col)
+        forward = (row+1, col) if team == teams[0] else (row-1, col)
         fr, fc = forward
-        if self.cells[fr][fc].piece is None and 0 <= fr <= 7:
-            cell.piece.possible_moves.append(forward)
+        if self.cells[(fr, fc)].piece is None and 0 <= fr <= 7:
+            if team == teams[0]:
+                self.max_player_moves[position].append(forward)
+            else:
+                self.min_player_moves[position].append(forward)
 
         #  Initial pawn position double forward move
-        double_forward = (row+2, col) if team == "white" else (row-2, col)
+        double_forward = (row+2, col) if team == teams[0] else (row-2, col)
         dr, dc = double_forward
-        if self.cells[dr][dc].piece is None:
-            if team == "white" and row == 1:
-                cell.piece.possible_moves.append(double_forward)
-            elif team == "black" and row == 6:
-                cell.piece.possible_moves.append(double_forward)
+        if self.cells[(dr, dc)].piece is None:
+            if team == teams[0] and row == 1:
+                self.max_player_moves[position].append(double_forward)
+            elif team == teams[1] and row == 6:
+                self.min_player_moves[position].append(double_forward)
 
-    def calculate_king_range(self, cell):
-        row, col = cell.position
-        positions = [(row+1, col-1), (row+1, col), (row+1, col+1), 
+    def calculate_king_range(self, position):
+        row, col = position
+        destinations = [(row+1, col-1), (row+1, col), (row+1, col+1), 
                     (row, col-1), (row, col+1), 
                     (row-1, col-1), (row-1, col), (row-1, col+1),]
-        for position in positions:
-            self.check_and_update_worth(cell, position)
+        for destination in destinations:
+            self.check_and_update_worth(position, destination)
