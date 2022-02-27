@@ -36,13 +36,8 @@ class Board:
             
 
     def set_state(self, board):
-        self.state = board.state
-        self.max_player_moves = board.max_player_moves
-        self.min_player_moves = board.min_player_moves
-
         for piece, position in board.piece_positions.items():
             self.add_piece(position, piece)
-            self.cells[position].worth = board.cells[position].worth
 
 
     def add_piece(self, position, piece):
@@ -54,22 +49,11 @@ class Board:
         cell = self.cells[position]
         piece = cell.piece
 
-        if piece == teams[0]:
-            self.state -= cell.worth - piece.points
-        else:
-            self.state += cell.worth - piece.points
-
         destination_cell = self.cells[destination]
         destination_piece = destination_cell.piece
         #  Capturing
         if destination_piece:
             self.piece_positions.pop(destination_piece)
-            if destination_piece.team == teams[0]:
-                self.state -= (destination_cell.worth - destination_piece.points)
-                self.state -= destination_piece.points
-            else:
-                self.state += (destination_cell.worth - destination_piece.points)
-                self.state += destination_piece.points
 
             #  Game Ended
             if destination_piece.name == "king":
@@ -80,6 +64,7 @@ class Board:
         self.cells[position].piece = None
         self.max_player_moves = []
         self.min_player_moves = []
+        self.state = 0.0
         self.evaluate_worths()
 
         return False
@@ -115,18 +100,28 @@ class Board:
         piece = cell.piece
         in_range_cell = self.cells[destination]
         in_range_piece = in_range_cell.piece
-        if in_range_piece:
-            if in_range_piece.team != piece.team:
-                in_range_advantage = in_range_cell.worth/2
 
-                cell.worth += in_range_advantage
+        #  If there is a piece in the destination
+        if in_range_piece:
+            #  Enemy Piece
+            if in_range_piece.team != piece.team:
+                cell.worth += in_range_cell.worth/2
                 if piece.team == teams[0]:
-                    self.state += in_range_advantage
-                    self.max_player_moves.append((position, destination))
+                    self.state += cell.worth
+                    #  If a good trade increase priority
+                    if cell.worth < in_range_cell.worth:
+                        self.max_player_moves.insert(0, (position, destination))
+                    else:
+                        self.max_player_moves.append((position, destination))
                 else:
-                    self.state -= in_range_advantage
-                    self.min_player_moves.append((position, destination))
+                    self.state -= cell.worth
+                    #  If a good trade increase priority
+                    if cell.worth < in_range_cell.worth:
+                        self.min_player_moves.insert(0, (position, destination))
+                    else:
+                        self.min_player_moves.append((position, destination))
                     
+                #  Own piece
                 return True
             return True
 
