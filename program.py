@@ -5,7 +5,7 @@ from datetime import datetime
 
 player_white = Player("Hammad", "white")
 player_black = Player("Habib", "black")
-board = Board(player_white, player_black)
+board = Board()
 
 pieces = [("rook", 5.0),
         ("knight", 3.0), 
@@ -20,10 +20,10 @@ teams = ("white", "black")
 
 for i in range(8):
     name, worth = pieces[i]
-    board.cells[(0, i)].piece = Piece(name, teams[0], worth)
-    board.cells[(1, i)].piece = Piece(pawn[0], teams[0], pawn[1])
-    board.cells[(7, i)].piece = Piece(name, teams[1], worth)
-    board.cells[(6, i)].piece = Piece(pawn[0], teams[1], pawn[1])
+    board.add_piece((0, i), Piece(name, teams[0], worth))
+    board.add_piece((1, i), Piece(pawn[0], teams[0], pawn[1]))
+    board.add_piece((7, i), Piece(name, teams[1], worth))
+    board.add_piece((6, i), Piece(pawn[0], teams[1], pawn[1]))
 
 while True:
     print_board(board)
