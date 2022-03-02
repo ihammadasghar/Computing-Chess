@@ -1,28 +1,21 @@
 from flask import Flask, render_template, request, redirect
-from models import Board, Piece
+from models import Board
+from pieces import *
 from minimax import minimax
 from datetime import datetime
 
 app = Flask(__name__)
 board = Board()
-
-pieces = [("rook", 5.0),
-        ("knight", 3.0), 
-        ("bishop", 3.0),
-        ("king", 500.0),
-        ("queen", 10.0),
-        ("bishop", 3.0), 
-        ("knight", 3.0), 
-        ("rook", 5.0)]
-pawn = ("pawn", 1.0)
+normalization_factor = 4
+pieces = [Rook, Knight, Bishop, King, Queen, Bishop, Knight, Rook]
 teams = ("white", "black")
 
 for i in range(8):
-    name, worth = pieces[i]
-    board.add_piece((0, i), Piece(name, teams[0], worth))
-    board.add_piece((1, i), Piece(pawn[0], teams[0], pawn[1]))
-    board.add_piece((7, i), Piece(name, teams[1], worth))
-    board.add_piece((6, i), Piece(pawn[0], teams[1], pawn[1]))
+    piece = pieces[i]
+    board.add_piece((0, i), piece(teams[0]))
+    board.add_piece((1, i), Pawn(teams[0]))
+    board.add_piece((7, i), piece(teams[1]))
+    board.add_piece((6, i), Pawn(teams[1]))
 
 board.evaluate_worths()
 
@@ -57,14 +50,13 @@ def compute_move():
         destinaton = None
         for pos, des in board.max_player_moves:
             state = minimax(pos, des, board, True, alpha=alpha, beta=beta, depth=depth-1)
-            print("State for maximizing: ",state)
+            # print("State for maximizing: ",state)
             if state > max_state:
                 max_state = state
                 position, destinaton = pos, des
             
             alpha = max(alpha, state)
             if beta <= alpha:
-                print("broken")
                 break
 
         board.make_move(position, destinaton)
@@ -76,13 +68,12 @@ def compute_move():
         destinaton = None
         for pos, des in board.min_player_moves:
             state = minimax(pos, des, board, False, alpha=alpha, beta=beta, depth=depth-1)
-            print("State for minimizing: ",state)
+            # print("State for minimizing: ",state)
             if state < min_state:
                 min_state = state
                 position, destinaton = pos, des
             beta = min(beta, state)
             if beta <= alpha:
-                print("broken")
                 break
 
         board.make_move(position, destinaton)

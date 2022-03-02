@@ -1,7 +1,9 @@
+from pieces import Pawn, King
+
 class Cell:
     def __init__(self, piece=None) -> None:
         self.piece = piece
-        self.worth = 0.0
+        self.worth = 0
         
 
 class Piece:
@@ -25,10 +27,10 @@ class Board:
         
         self.max_player_moves = []
         self.min_player_moves = []
-        self.max_total_points = 0.0
-        self.min_total_points = 0.0
+        self.max_total_points = 0
+        self.min_total_points = 0
         self.piece_positions = {}
-        self.state = 0.0
+        self.state = 0
         self.game_over = False
             
 
@@ -54,19 +56,22 @@ class Board:
         destination_piece = destination_cell.piece
         #  Capturing
         if destination_piece:
-            self.piece_positions.pop(destination_piece)
+            del self.piece_positions[destination_piece]
             if destination_piece.team == "white":
                 self.max_total_points -= destination_piece.points
             else:
                 self.min_total_points -= destination_piece.points
             #  Game Ended
-            if destination_piece.name == "king":
+            if type(destination_piece) == King:
                 self.game_over = True
         
+        # Replace piece
         self.piece_positions[piece] = destination
         self.cells[destination].piece = piece
         self.cells[position].piece = None
-        self.cells[position].worth = 0.0
+
+        # Resets
+        self.cells[position].worth = 0
         self.max_player_moves = []
         self.min_player_moves = []
         self.evaluate_worths()
@@ -78,28 +83,18 @@ class Board:
         self.state = self.max_total_points - self.min_total_points
         for piece, position in self.piece_positions.items():
             #  Reset
-            self.cells[position].worth = 0.0
+            self.cells[position].worth = 0
 
             #  Caculate ranges and possible moves
-            if piece.name == "queen":
-                self.calculate_queen_range(position)
-            elif piece.name == "king":
-                self.calculate_king_range(position)
-            elif piece.name == "knight":
-                self.calculate_knight_range(position)
-            elif piece.name == "bishop":
-                self.calculate_x_range(position)
-            elif piece.name == "rook":
-                self.calculate_plus_range(position)
-            elif piece.name == "pawn":
-                self.calculate_pawn_range(position)
-        self.state += (len(self.max_player_moves) - len(self.min_player_moves))/8
+            piece.calculate_range(position, self)
+
+        self.state += (len(self.max_player_moves) - len(self.min_player_moves))//10
 
 
     def optimize_state(self, position, destination):
         row, col = destination
         #  Out of board
-        if not (0 <= row <=7) or not (0 <= col <=7):
+        if not ((0 <= row <=7) and (0 <= col <=7)):
             return True
 
         cell = self.cells[position]
@@ -111,21 +106,21 @@ class Board:
         if in_range_piece:
             #  Enemy Piece
             #  In range points
-            advantage = in_range_piece.points/6
 
             if in_range_piece.team != piece.team:
+                advantage = in_range_piece.points//10
                 cell.worth += advantage
                 if piece.team == "white":
                     self.state += cell.worth
                     #  If a good trade increase priority
-                    if piece.points < in_range_piece.points:
+                    if piece.points <= in_range_piece.points:
                         self.max_player_moves.insert(0, (position, destination))
                     else:
                         self.max_player_moves.append((position, destination))
                 else:
                     self.state -= cell.worth
                     #  If a good trade then increase priority
-                    if piece.points < in_range_piece.points:
+                    if piece.points <= in_range_piece.points:
                         self.min_player_moves.insert(0, (position, destination))
                     else:
                         self.min_player_moves.append((position, destination))
@@ -134,7 +129,7 @@ class Board:
             #  Own piece
             return True
 
-        if piece.name == "pawn":
+        if type(piece) == Pawn:
             return False
 
         if piece.team == "white":
@@ -142,106 +137,3 @@ class Board:
         else:
             self.min_player_moves.append((position, destination))
         return False
-
-
-    def calculate_queen_range(self, position):
-        self.calculate_plus_range(position)
-        self.calculate_x_range(position)
-
-
-    def calculate_plus_range(self, position):
-        row, col = position
-
-        up = True
-        down = True
-        left = True
-        right = True
-        for i in range(1, 8):
-            if up:
-                is_End_or_Blocked = self.optimize_state(position, (row-i, col))
-                up = not is_End_or_Blocked
-            
-            if down:
-                is_End_or_Blocked = self.optimize_state(position, (row+i, col))
-                down = not is_End_or_Blocked
-
-            if left:
-                is_End_or_Blocked = self.optimize_state(position, (row, col-i))
-                left = not is_End_or_Blocked
-
-            if right:
-                is_End_or_Blocked = self.optimize_state(position, (row, col+i))
-                right = not is_End_or_Blocked
-
-
-    def calculate_x_range(self, position):
-        row, col = position
-        
-        top_left = True
-        top_right = True
-        bottom_left = True
-        bottom_right = True
-        for i in range(1, 8):
-            if top_left:
-                is_End_or_Blocked = self.optimize_state(position, (row-i, col-i))
-                top_left = not is_End_or_Blocked
-            
-            if top_right:
-                is_End_or_Blocked = self.optimize_state(position, (row-i, col+i))
-                top_right = not is_End_or_Blocked
-
-            if bottom_left:
-                is_End_or_Blocked = self.optimize_state(position, (row+i, col-i))
-                bottom_left = not is_End_or_Blocked
-
-            if bottom_right:
-                is_End_or_Blocked = self.optimize_state(position, (row+i, col+i))
-                bottom_right = not is_End_or_Blocked
-            
-
-    def calculate_knight_range(self, position):
-        row, col = position
-        destinations = [(row-2, col-1), (row-2, col+1),
-                    (row-1, col-2), (row-1, col+2),
-                    (row+1, col-2), (row+1, col+2),
-                    (row+2, col-1), (row+2, col+1),
-                    ]
-        for destination in destinations:
-            self.optimize_state(position, destination)
-
-
-    def calculate_pawn_range(self, position):
-        cell = self.cells[position]
-        team = cell.piece.team
-        row, col = position
-        destinations = [(row+1, col-1), (row+1, col+1)] if team == "white" else [(row-1, col-1), (row-1, col+1)]
-        for destination in destinations:
-            self.optimize_state(position, destination)
-        
-        forward = (row+1, col) if team == "white" else (row-1, col)
-        fr, fc = forward
-        if 0 <= fr <= 7:
-            if self.cells[(fr, fc)].piece is None:
-                if team == "white":
-                    self.max_player_moves.append((position, forward))
-                else:
-                    self.min_player_moves.append((position, forward))
-
-        #  Initial pawn position double forward move
-        double_forward = (row+2, col) if team == "white" else (row-2, col)
-        dr, dc = double_forward
-        if 0 <= dr <= 7:
-            if self.cells[(dr, dc)].piece is None and self.cells[forward].piece is None:
-                if team == "white" and row == 1:
-                    self.max_player_moves.append((position, double_forward))
-                elif team == "black" and row == 6:
-                    self.min_player_moves.append((position, double_forward))
-
-
-    def calculate_king_range(self, position):
-        row, col = position
-        destinations = [(row+1, col-1), (row+1, col), (row+1, col+1), 
-                    (row, col-1), (row, col+1), 
-                    (row-1, col-1), (row-1, col), (row-1, col+1),]
-        for destination in destinations:
-            self.optimize_state(position, destination)

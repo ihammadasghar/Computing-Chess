@@ -12,23 +12,23 @@
                   <tr>
                     <th scope="col" style="width: 30px; height: 30px;">#</th>
                     {% for i in range(1, 9) %}
-                        <th scope="col" style="width: 70px; height: 30px;">{{ i }}</th>
+                        <th scope="col" style="width: 100px; height: 30px;">{{ i }}</th>
                     {% endfor %}
                   </tr>
                 </thead>
                 <tbody>
                     {% for row in range(8) %}
                     <tr>
-                        <th scope="row" style="width: 30px; height: 70px;">{{ row+1 }}</th>
+                        <th scope="row" style="width: 30px; height: 100px;">{{ row+1 }}</th>
                         {% for col in range(8) %}
                             {% if (col+row)%2==0 %}
-                            <td style="width: 70px; height: 70px;" onclick="selectCell(this, '{{ row+1 }},{{ col+1 }}')">
+                            <td style="width: 100px; height: 100px;" onclick="selectCell(this, '{{ row+1 }},{{ col+1 }}')">
                                 {% if board.cells[(row, col)].piece %}
                                 <img src="../static/images/{{ board.cells[(row, col)].piece.image }}"/>
                                 {% endif %}
                             </td>
                             {% else %}
-                            <td class="bg-light" style="width: 70px; height: 70px;" onclick="selectCell(this, '{{ row+1 }},{{ col+1 }}')">
+                            <td class="bg-light" style="width: 100px; height: 100px;" onclick="selectCell(this, '{{ row+1 }},{{ col+1 }}')">
                                 {% if board.cells[(row, col)].piece %}
                                 <img src="../static/images/{{ board.cells[(row, col)].piece.image }}"/>
                                 {% endif %}
