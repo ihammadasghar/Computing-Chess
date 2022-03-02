@@ -3,4 +3,9 @@
 myenv/
 .env
 
+.vscode
+*.py[cod]
+myenv/
+.env
+
 **/__pycache__/

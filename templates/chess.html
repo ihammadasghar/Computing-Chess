@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block head %}
+<title>Computing Chess</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <div class="row">
+        <div class="col-7">
+            <table class="table table-dark">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 30px; height: 30px;">#</th>
+                    {% for i in range(1, 9) %}
+                        <th scope="col" style="width: 70px; height: 30px;">{{ i }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                    {% for row in range(8) %}
+                    <tr>
+                        <th scope="row" style="width: 30px; height: 70px;">{{ row+1 }}</th>
+                        {% for col in range(8) %}
+                            {% if (col+row)%2==0 %}
+                            <td style="width: 70px; height: 70px;" onclick="selectCell(this, '{{ row+1 }},{{ col+1 }}')">
+                                {% if board.cells[(row, col)].piece %}
+                                <img src="../static/images/{{ board.cells[(row, col)].piece.image }}"/>
+                                {% endif %}
+                            </td>
+                            {% else %}
+                            <td class="bg-light" style="width: 70px; height: 70px;" onclick="selectCell(this, '{{ row+1 }},{{ col+1 }}')">
+                                {% if board.cells[(row, col)].piece %}
+                                <img src="../static/images/{{ board.cells[(row, col)].piece.image }}"/>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+              </table>
+        </div>
+
+        <div class="col-5">
+            <div class="card">
+                <h5 class="card-header">Control Panel</h5>
+                <div class="card-body">
+                    <h4 class="card-title">Stats:</h4>
+                    <p class="card-text">
+                        <b>Board State: </b>{{ board.state }}<br>
+                        <b>White points: </b>{{ board.max_total_points }}<br>
+                        <b>Black points: </b>{{ board.min_total_points }}<br>
+                        <b>Time taken: </b>{{ time_taken }}<br>
+
+                    </p>
+
+                  <p class="card-text">
+                    <div class="form">
+                    <form action="/" method="POST">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label>Position</label>
+                              <input type="text" name="position" id="position" class="form-control" placeholder="row,col">
+                            </div>
+                            <div class="col">
+                                <label>Destination</label>
+                              <input type="text" name="destination" id="destination" class="form-control" placeholder="row,col">
+                            </div>
+                          </div>
+                          <button type="submit" class="btn btn-primary" style="width:100%;">Make move</button>
+                    </form>
+                    <br>
+                    <form action="/compute-move" method="POST">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="formControlRange">Depth</label>
+                                <input type="number" name="depth" id="depth" class="form-control" value=4>
+                            </div>
+                            <div class="col">
+                                <label for="formControlRange">Player</label>
+                                <input type="text" name="player" id="player" class="form-control" value="white">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-danger" style="width:100%;">Compute move</button>
+                    </form>
+                    </div>
+                    </p>
+                  
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    var selectedCell = null;
+    var destinationCell = null;
+
+    function selectCell(cell, rowcol){
+        if (cell == selectedCell){
+            selectedCell = null;
+            cell.style = "width: 70px; height: 70px;";
+            document.getElementById('position').value = null;
+        }
+        else if (cell == destinationCell){
+            destinationCell = null;
+            cell.style = "width: 70px; height: 70px;";
+            document.getElementById('destination').value = null;
+        }
+        else if (document.getElementById('position').value == ""){
+            selectedCell = cell;
+            cell.style = "width: 70px; height: 70px; border: solid green; border-width: 5px;";
+            document.getElementById('position').value = rowcol;
+        }
+        else if (document.getElementById('destination').value == ""){
+            destinationCell = cell;
+            document.getElementById('destination').value = rowcol;
+            cell.style = "width: 70px; height: 70px; border: solid red; border-width: 5px;";
+        }
+        
+    }
+</script>
+{% endblock %}
