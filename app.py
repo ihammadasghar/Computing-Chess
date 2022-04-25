@@ -5,6 +5,8 @@ from minimax import minimax
 from datetime import datetime
 
 app = Flask(__name__)
+
+#  Setting up the board
 board = Board()
 normalization_factor = 4
 pieces = [Rook, Knight, Bishop, King, Queen, Bishop, Knight, Rook]
@@ -34,6 +36,7 @@ def index():
 
     else:
         return render_template('chess.html', board=board, time_taken=time_taken)
+
 
 @app.route('/compute-move', methods=['POST'])
 def compute_move():
