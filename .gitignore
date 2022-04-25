@@ -1,11 +1,6 @@
 .vscode
 *.py[cod]
-myenv/
-.env
-
-.vscode
-*.py[cod]
-myenv/
+venv/
 .env
 
 **/__pycache__/
