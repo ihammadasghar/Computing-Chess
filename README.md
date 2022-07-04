@@ -18,5 +18,3 @@ NOTE: If the python/pip commands don't work for you try `python3` and `pip3` or 
 ## About this project:
 Python being a higher level language sometimes lacks in speed for certain tasks & as it requires minimax to compute chess boards which is a recursive algorithmn & can take time to compute, so the main motivation behind this project was how fast can I make it go & in the process discovering the best python practices/data structures to get the best speeds possible.
 By the end of the project I was able to increase the speed 30x from what I had initially, discovering how certain functions of python, data structures & project architecture affect execution time in the process.
-
-Try it out on gitpod (not recommended): [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/ihammadasghar/Computing-Chess)
